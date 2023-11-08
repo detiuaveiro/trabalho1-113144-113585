@@ -10,6 +10,7 @@
 /// 2013, 2023
 
 // Student authors (fill in below):
+// NMec:113144  Name:João Viegas
 // NMec:  Name:
 // 
 // 
@@ -334,7 +335,12 @@ int ImageValidPos(Image img, int x, int y) { ///
 /// Check if rectangular area (x,y,w,h) is completely inside img.
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
-  // Insert your code here!
+  if (ImageValidPos(img,x,y)&&ImageValidPos(img,w,h))
+  {
+    return 1;
+  }
+  return 0;
+  
 }
 
 /// Pixel get & set operations
@@ -349,7 +355,9 @@ int ImageValidRect(Image img, int x, int y, int w, int h) { ///
 // The returned index must satisfy (0 <= index < img->width*img->height)
 static inline int G(Image img, int x, int y) {
   int index;
-  // Insert your code here!
+  //if (0,0) for o primeiro
+  index=x+y*img->height;
+  //se não:  index=x-1+(y-1)*img->height;
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
@@ -384,7 +392,11 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 /// resulting in a "photographic negative" effect.
 void ImageNegative(Image img) { ///
   assert (img != NULL);
-  // Insert your code here!
+  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  for (size_t i = 0; i < count; i++){
+    img->pixel[i]=img->maxval-img->pixel[i];
+    
+  }
 }
 
 /// Apply threshold to image.
@@ -392,7 +404,18 @@ void ImageNegative(Image img) { ///
 /// all pixels with level>=thr to white (maxval).
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
-  // Insert your code here!
+  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  for (size_t i = 0; i < count; i++){
+    if (img->pixel[i]>=thr)
+    {
+      img->pixel[i]=img->maxval;
+    }
+    else
+    {
+      img->pixel[i]=0;
+    }
+    
+  }
 }
 
 /// Brighten image by a factor.
@@ -401,8 +424,18 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert (img != NULL);
+  assert (factor >= 0.0);
   // ? assert (factor >= 0.0);
   // Insert your code here!
+  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  for (size_t i = 0; i < count; i++){
+    img->pixel[i]=(uint8)(img->pixel[i]*factor);
+    if (img->pixel[i]>img->maxval)
+    {
+        img->pixel[i]=img->maxval;
+    }
+    
+  }
 }
 
 

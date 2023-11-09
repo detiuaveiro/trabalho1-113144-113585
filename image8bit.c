@@ -311,7 +311,7 @@ void ImageStats(Image img, uint8* min, uint8* max) { ///
   assert (img != NULL);
   *min=0;
   *max=0;
-  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  uint8 count=ImageGetLenght(img);
   for (size_t i = 0; i < count; i++)
   {
     if (img->pixel[i]>min){
@@ -377,7 +377,9 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
   PIXMEM += 1;  // count one pixel access (store)
   img->pixel[G(img, x, y)] = level;
 } 
-
+int ImageGetLenght(Image img){
+  return img->width*img->height;
+}
 
 /// Pixel transformations
 
@@ -392,7 +394,7 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 /// resulting in a "photographic negative" effect.
 void ImageNegative(Image img) { ///
   assert (img != NULL);
-  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  uint8 count=ImageGetLenght(img);
   for (size_t i = 0; i < count; i++){
     img->pixel[i]=img->maxval-img->pixel[i];
     
@@ -404,7 +406,7 @@ void ImageNegative(Image img) { ///
 /// all pixels with level>=thr to white (maxval).
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
-  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  uint8 count=ImageGetLenght(img);
   for (size_t i = 0; i < count; i++){
     if (img->pixel[i]>=thr)
     {
@@ -427,7 +429,7 @@ void ImageBrighten(Image img, double factor) { ///
   assert (factor >= 0.0);
   // ? assert (factor >= 0.0);
   // Insert your code here!
-  uint8 count=ImageHeight(img)*ImageMaxval(img);
+  uint8 count=ImageGetLenght(img);
   for (size_t i = 0; i < count; i++){
     img->pixel[i]=(uint8)(img->pixel[i]*factor);
     if (img->pixel[i]>img->maxval)
@@ -462,7 +464,22 @@ void ImageBrighten(Image img, double factor) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
-  // Insert your code here!
+  Image newImg=ImageCreate(img->height,img->width,img->maxval);
+  if (newImg==NULL){
+    return NULL;
+  }
+  /*
+  uint8 count=ImageGetLenght(img);
+  int indexNew;
+  for (int index = 0; index < count; index++){
+    
+  }
+  */
+ for (int y = 0; y < ImageHeight(img); y++){
+  for (int x = 0; x < ImageWidth(img); x++){
+    ImageSetPixel(newImg,y,ImageWidth(img)-x-1,ImageGetPixel(img,x,y));
+ }}
+  return newImg;
 }
 
 /// Mirror an image = flip left-right.
@@ -474,7 +491,22 @@ Image ImageRotate(Image img) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageMirror(Image img) { ///
   assert (img != NULL);
-  // Insert your code here!
+  Image newImg=ImageCreate(img->height,img->width,img->maxval);
+  if (newImg==NULL){
+    return NULL;
+  }
+  /*
+  uint8 count=ImageGetLenght(img);
+  int indexNew;
+  for (int index = 0; index < count; index++){
+    
+  }
+  */
+ for (int y = 0; y < ImageHeight(img); y++){
+  for (int x = 0; x < ImageWidth(img); x++){
+    ImageSetPixel(newImg,ImageWidth(img)-x-1,y,ImageGetPixel(img,x,y));
+ }}
+  return newImg;
 }
 
 /// Crop a rectangular subimage from img.

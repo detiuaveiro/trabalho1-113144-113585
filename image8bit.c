@@ -11,7 +11,7 @@
 
 // Student authors (fill in below):
 // NMec:113144  Name:João Viegas
-// NMec:  Name:
+// NMec:113585  Name:Henrique de Barbosa Mendonça Oliveira
 // 
 // 
 // 
@@ -335,7 +335,7 @@ int ImageValidPos(Image img, int x, int y) { ///
 /// Check if rectangular area (x,y,w,h) is completely inside img.
 int ImageValidRect(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
-  if (ImageValidPos(img,x,y)&&ImageValidPos(img,w,h))
+  if (ImageValidPos(img,x,y)&&ImageValidPos(img,w+x-1,h+y-1))
   {
     return 1;
   }
@@ -356,8 +356,8 @@ int ImageValidRect(Image img, int x, int y, int w, int h) { ///
 static inline int G(Image img, int x, int y) {
   int index;
   //if (0,0) for o primeiro
-  index=x+y*img->height;
-  //se não:  index=x-1+(y-1)*img->height;
+  index=x+y*img->width;
+  //se nao:  index=x-1+(y-1)*img->height;
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
@@ -495,13 +495,6 @@ Image ImageMirror(Image img) { ///
   if (newImg==NULL){
     return NULL;
   }
-  /*
-  uint8 count=ImageGetLenght(img);
-  int indexNew;
-  for (int index = 0; index < count; index++){
-    
-  }
-  */
  for (int y = 0; y < ImageHeight(img); y++){
   for (int x = 0; x < ImageWidth(img); x++){
     ImageSetPixel(newImg,ImageWidth(img)-x-1,y,ImageGetPixel(img,x,y));
@@ -524,7 +517,16 @@ Image ImageMirror(Image img) { ///
 Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   assert (ImageValidRect(img, x, y, w, h));
-  // Insert your code here!
+   Image newImg=ImageCreate(h,w,ImageMaxval(img));
+  if (newImg==NULL){
+    return NULL;
+  }
+  for (int i = 0; i < h ; i++){
+    for (int j = 0; j < w ; j++){
+      ImageSetPixel(newImg,j,i,ImageGetPixel(img,j+w,i+h));
+ }}
+  return newImg;
+ 
 }
 
 
@@ -537,8 +539,12 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
 void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
+  assert (ImageMaxval(img2) <= ImageMaxval(img1));
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
-  // Insert your code here!
+  for (int i = 0; i < img2->height ; i++){
+    for (int j = 0; j < img2->width ; j++){
+      ImageSetPixel(img1,j+x,i+y,ImageGetPixel(img2,j,i));
+ }}
 }
 
 /// Blend an image into a larger image.
@@ -550,8 +556,13 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
 void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
+  
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
-  // Insert your code here!
+    for (int i = 0; i < img2->height ; i++){
+    for (int j = 0; j < img2->width ; j++){
+      uint8 valPixel=(int)(ImageGetPixel(img2,j,i)*alpha+ImageGetPixel(img1,j+x,i+y)*(1-alpha));
+      ImageSetPixel(img1,j+x,i+y,valPixel);
+ }}
 }
 
 /// Compare an image to a subimage of a larger image.
@@ -561,7 +572,8 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
-  // Insert your code here!
+  
+  return 0;
 }
 
 /// Locate a subimage inside another image.

@@ -172,7 +172,7 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   assert (width >= 0);
   assert (height >= 0);
   assert (0 < maxval && maxval <= PixMax);
-  Image imag = malloc(sizeof(Image));
+  Image imag = malloc(sizeof(struct image));
     if (imag == NULL) {
         return NULL;
     }
@@ -196,8 +196,8 @@ void ImageDestroy(Image* imgp) { ///
   assert (imgp != NULL);
   free((*imgp)->pixel);
   (*imgp)->pixel=NULL;
-  free(imgp);
-  imgp=NULL;
+  free(*imgp);
+  *imgp=NULL;
 }
 
 
@@ -314,11 +314,11 @@ void ImageStats(Image img, uint8* min, uint8* max) { ///
   int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++)
   {
-    if (img->pixel[i]>min){
-      *min=0;
+    if ((img->pixel[i])>min){
+      *min=img->pixel[i];
     }
-    if (img->pixel[i]>max){
-      *max=0;
+    if ((img->pixel[i])>max){
+      *max=img->pixel[i];
     }
     
   }
@@ -431,7 +431,7 @@ void ImageBrighten(Image img, double factor) { ///
   // Insert your code here!
   int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++){
-    img->pixel[i]=(uint8)(img->pixel[i]*factor);
+    img->pixel[i]=(uint8)(img->pixel[i]*factor+0.5); // +0.5 to ensure correct rounding
     if (img->pixel[i]>img->maxval)
     {
         img->pixel[i]=img->maxval;
@@ -560,7 +560,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
     for (int i = 0; i < img2->height ; i++){
     for (int j = 0; j < img2->width ; j++){
-      uint8 valPixel=(int)(ImageGetPixel(img2,j,i)*alpha+ImageGetPixel(img1,j+x,i+y)*(1-alpha));
+      uint8 valPixel=(uint8)(ImageGetPixel(img2,j,i)*alpha+ImageGetPixel(img1,j+x,i+y)*(1-alpha)+0.5); // +0.5 to ensure correct rounding
       ImageSetPixel(img1,j+x,i+y,valPixel);
  }}
 }

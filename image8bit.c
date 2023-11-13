@@ -612,7 +612,29 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
+  int i,j,x,y;
+  uint8 valPixel;
   Image img2=ImageCreate(ImageWidth(img),ImageHeight(img),ImageMaxval(img));
+      for (i = 0; i < ImageHeight(img); i++){
+      for (j = 0; j < ImageWidth(img) ; j++){
+      valPixel=ImageGetPixel(img,j,i)
+      +j>0?ImageGetPixel(img2,j-1,i):0
+      +i>0?ImageGetPixel(img2,j,i-1):0;
+      ImageSetPixel(img2,j,i,valPixel);     
+  }}
+  for (i = 0; i < ImageHeight(img); i++){
+  for (j = 0; j < ImageWidth(img) ; j++){
+    x=j+dx<ImageWidth(img)?j+dx:ImageWidth(img)-1;
+    y=i+dy<ImageHeight(img)?i+dy:ImageHeight(img)-1;
+    valPixel=ImageGetPixel(img2,x,y)
+    +(j-dx>0&&i-dy>0?ImageGetPixel(img2,j-dx-1,i-dy-1):0)
+    -(i-dy>0?ImageGetPixel(img2,j+dx,i-dy-1):0)
+    -(j-dx>0?ImageGetPixel(img2,j-dx-1,i+dy):0);
+    ImageSetPixel(img,j,i,valPixel);     
+    
+ }}
+//Algures dá erro nos indices do ImageGetPixel
+//Na imagem 2 passa do limite de PixMax permitido
 
 }
 

@@ -311,7 +311,7 @@ void ImageStats(Image img, uint8* min, uint8* max) { ///
   assert (img != NULL);
   *min=0;
   *max=0;
-  uint8 count=ImageGetLenght(img);
+  int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++)
   {
     if (img->pixel[i]>min){
@@ -377,7 +377,7 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
   PIXMEM += 1;  // count one pixel access (store)
   img->pixel[G(img, x, y)] = level;
 } 
-int ImageGetLenght(Image img){
+int ImageGetLength(Image img){
   return img->width*img->height;
 }
 
@@ -394,7 +394,7 @@ int ImageGetLenght(Image img){
 /// resulting in a "photographic negative" effect.
 void ImageNegative(Image img) { ///
   assert (img != NULL);
-  uint8 count=ImageGetLenght(img);
+  int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++){
     img->pixel[i]=img->maxval-img->pixel[i];
     
@@ -406,7 +406,7 @@ void ImageNegative(Image img) { ///
 /// all pixels with level>=thr to white (maxval).
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
-  uint8 count=ImageGetLenght(img);
+  int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++){
     if (img->pixel[i]>=thr)
     {
@@ -429,7 +429,7 @@ void ImageBrighten(Image img, double factor) { ///
   assert (factor >= 0.0);
   // ? assert (factor >= 0.0);
   // Insert your code here!
-  uint8 count=ImageGetLenght(img);
+  int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++){
     img->pixel[i]=(uint8)(img->pixel[i]*factor);
     if (img->pixel[i]>img->maxval)
@@ -469,7 +469,7 @@ Image ImageRotate(Image img) { ///
     return NULL;
   }
   /*
-  uint8 count=ImageGetLenght(img);
+  int count=ImageGetLength(img);
   int indexNew;
   for (int index = 0; index < count; index++){
     
@@ -572,8 +572,16 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
-  
-  return 0;
+  assert (ImageValidRect(img1, x, y, img2->width, img2->height));
+    for (int i = 0; i < img2->height ; i++){
+      for (int j = 0; j < img2->width ; j++){
+        if (ImageGetPixel(img2,j,i) != ImageGetPixel(img1,j+x,i+y))
+        {
+          return 0;
+        }
+      
+ }}
+  return 1;
 }
 
 /// Locate a subimage inside another image.
@@ -583,7 +591,17 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
 int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
-  // Insert your code here!
+  for (int i = 0; i < img2->height ; i++){
+    for (int j = 0; j < img2->width ; j++){
+      if (ImageValidRect(img1, j, i, img2->width, img2->height)&&ImageMatchSubImage(img1, j, i, img2)==1)
+      {
+        *px=j;
+        *py=i;
+        return 1;
+      }
+      
+ }}
+ return 0;
 }
 
 
@@ -594,6 +612,7 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
-  // Insert your code here!
+  Image img2=ImageCreate(ImageWidth(img),ImageHeight(img),ImageMaxval(img));
+
 }
 

@@ -314,10 +314,10 @@ void ImageStats(Image img, uint8* min, uint8* max) { ///
   int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++)
   {
-    if ((img->pixel[i])>min){
+    if ((img->pixel)[i]>*min){
       *min=img->pixel[i];
     }
-    if ((img->pixel[i])>max){
+    if ((img->pixel)[i]>*max){
       *max=img->pixel[i];
     }
     
@@ -408,12 +408,10 @@ void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++){
-    if (img->pixel[i]>=thr)
-    {
+    if (img->pixel[i]>=thr){
       img->pixel[i]=img->maxval;
     }
-    else
-    {
+    else{
       img->pixel[i]=0;
     }
     
@@ -432,8 +430,7 @@ void ImageBrighten(Image img, double factor) { ///
   int count=ImageGetLength(img);
   for (size_t i = 0; i < count; i++){
     img->pixel[i]=(uint8)(img->pixel[i]*factor+0.5); // +0.5 to ensure correct rounding
-    if (img->pixel[i]>img->maxval)
-    {
+    if (img->pixel[i]>img->maxval){
         img->pixel[i]=img->maxval;
     }
     
@@ -612,24 +609,24 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
-  int i,j,x,y;
-  uint8 valPixel;
-  Image img2=ImageCreate(ImageWidth(img),ImageHeight(img),ImageMaxval(img));
-      for (i = 0; i < ImageHeight(img); i++){
-      for (j = 0; j < ImageWidth(img) ; j++){
-      valPixel=ImageGetPixel(img,j,i)
-      +j>0?ImageGetPixel(img2,j-1,i):0
-      +i>0?ImageGetPixel(img2,j,i-1):0;
-      ImageSetPixel(img2,j,i,valPixel);     
-  }}
-  for (i = 0; i < ImageHeight(img); i++){
-  for (j = 0; j < ImageWidth(img) ; j++){
-    x=j+dx<ImageWidth(img)?j+dx:ImageWidth(img)-1;
-    y=i+dy<ImageHeight(img)?i+dy:ImageHeight(img)-1;
-    valPixel=ImageGetPixel(img2,x,y)
-    +(j-dx>0&&i-dy>0?ImageGetPixel(img2,j-dx-1,i-dy-1):0)
-    -(i-dy>0?ImageGetPixel(img2,j+dx,i-dy-1):0)
-    -(j-dx>0?ImageGetPixel(img2,j-dx-1,i+dy):0);
+  int i,j,a,b,x,y;
+  int height=ImageHeight(img);
+  int width=ImageWidth(img);
+  int valPixel;
+  Image img2=ImageCreate(width,height,ImageMaxval(img));
+  ImagePaste(img2,0,0,img);
+  for (i = 0; i < height; i++){
+  for (j = 0; j < width ; j++){
+    valPixel=0;
+    for (a = -dy; a <= dy; a++){
+    for (b = -dx; b <= dx; b++){
+      y=i+a<height?i+a:height-1;
+      x=j+b<width?j+b:width-1;
+      y=y<0?0:y;
+      x=x<0?0:x;
+      valPixel+=ImageGetPixel(img2,x,y);
+    }}
+    valPixel=(uint8)(valPixel/((2*dx+1)*(2*dy+1))+0.5);
     ImageSetPixel(img,j,i,valPixel);     
     
  }}
@@ -638,3 +635,28 @@ void ImageBlur(Image img, int dx, int dy) { ///
 
 }
 
+
+/*
+  int i,j,x,y;
+  uint8 valPixel;
+  Image img2=ImageCreate(ImageWidth(img),ImageHeight(img),ImageMaxval(img));
+      for (i = 0; i < ImageHeight(img2); i++){
+      for (j = 0; j < ImageWidth(img2) ; j++){
+      valPixel=ImageGetPixel(img,j,i);
+      valPixel+=j>0?ImageGetPixel(img2,j-1,i):0;
+      valPixel+=i>0?ImageGetPixel(img2,j,i-1):0;
+      valPixel=(uint8)(valPixel/((i+1)*(j+1))+0.5);
+      ImageSetPixel(img2,j,i,valPixel);     
+  }}
+  for (i = 0; i < ImageHeight(img2); i++){
+  for (j = 0; j < ImageWidth(img2) ; j++){
+    x=j+dx<ImageWidth(img)?j+dx:ImageWidth(img)-1;
+    y=i+dy<ImageHeight(img)?i+dy:ImageHeight(img)-1;
+    valPixel=(uint8)(ImageGetPixel(img2,x,y)*((x+1)*(y+1))+0.5);
+    valPixel-=(uint8)((i-dy>0?ImageGetPixel(img2,x,i-dy-1):0)*((x+1)*(i-dy))+0.5);
+    valPixel-=(uint8)((j-dx>0?ImageGetPixel(img2,j-dx-1,y):0)*((j-dx)*(y+1))+0.5);
+    valPixel+=(uint8)((j-dx>0&&i-dy>0?ImageGetPixel(img2,j-dx-1,i-dy-1):0)*((j-dx)*(i-dy))+0.5);
+    valPixel=(uint8)(valPixel/((dx+dy+1)*(dx+dy+1))+0.5); 
+    ImageSetPixel(img,j,i,valPixel);
+ }}
+*/

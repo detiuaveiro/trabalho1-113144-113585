@@ -553,7 +553,6 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
 void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
-  
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
     for (int i = 0; i < img2->height ; i++){
     for (int j = 0; j < img2->width ; j++){
@@ -600,7 +599,23 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
  }}
  return 0;
 }
-
+/*
+int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
+  assert (img1 != NULL);
+  assert (img2 != NULL);
+  for (int i = 0; i < img2->height ; i++){
+    for (int j = 0; j < img2->width ; j++){
+      if (ImageValidRect(img1, j, i, img2->width, img2->height)&&ImageMatchSubImage(img1, j, i, img2)==1)
+      {
+        *px=j;
+        *py=i;
+        return 1;
+      }
+      
+ }}
+ return 0;
+}
+*/
 
 /// Filtering
 
@@ -628,11 +643,10 @@ void ImageBlur(Image img, int dx, int dy) { ///
     }}
     valPixel=(uint8)(valPixel/((2*dx+1)*(2*dy+1))+0.5);
     ImageSetPixel(img,j,i,valPixel);     
-    
  }}
 //Algures dá erro nos indices do ImageGetPixel
 //Na imagem 2 passa do limite de PixMax permitido
-
+    ImageDestroy(&img2);
 }
 
 

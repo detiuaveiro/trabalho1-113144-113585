@@ -377,7 +377,7 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
   PIXMEM += 1;  // count one pixel access (store)
   img->pixel[G(img, x, y)] = level;
 } 
-int ImageGetLength(Image img){
+ int ImageGetLength(Image img){
   return img->width*img->height;
 }
 
@@ -624,53 +624,96 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
-  int i,j,a,b,x,y;
-  int height=ImageHeight(img);
-  int width=ImageWidth(img);
-  int valPixel;
-  Image img2=ImageCreate(width,height,ImageMaxval(img));
-  ImagePaste(img2,0,0,img);
+  assert(dx >= 0);    // dx must be non-negative
+  assert(dy >= 0);    // dy must be non-negative
+  int i,j;            // loop variables
+  int x,y;            // pixel position
+  int valPixel;    // pixel value (double to avoid overflow)
+  int height = ImageHeight(img);  
+  int width = ImageWidth(img);
+  int matrixValPixelSUM[height*width];
   for (i = 0; i < height; i++){
-  for (j = 0; j < width ; j++){
-    valPixel=0;
-    for (a = -dy; a <= dy; a++){
-    for (b = -dx; b <= dx; b++){
-      y=i+a<height?i+a:height-1;
-      x=j+b<width?j+b:width-1;
-      y=y<0?0:y;
-      x=x<0?0:x;
-      valPixel+=ImageGetPixel(img2,x,y);
-    }}
-    valPixel=(uint8)(valPixel/((2*dx+1)*(2*dy+1))+0.5);
-    ImageSetPixel(img,j,i,valPixel);     
- }}
+    for (j = 0; j < width ; j++){
+      valPixel = ImageGetPixel(img,j,i);
+      valPixel += j > 0 ? matrixValPixelSUM[G(img,j-1,i)] : 0;
+      valPixel += i > 0 ? matrixValPixelSUM[G(img,j,i-1)] : 0;
+      valPixel -= i > 0 && j > 0 ? matrixValPixelSUM[G(img,j-1,i-1)] : 0;
+      
+      matrixValPixelSUM[G(img,j,i)]=valPixel;     
+    }
+  }
+  for (i = 0; i < height; i++){
+    for (j = 0; j < width ; j++){
+      x = j+dx < width ? j+dx : width-1;
+      y = i+dy < height ? i+dy : height-1;
+      valPixel = matrixValPixelSUM[G(img,x,y)];
+      valPixel += j - dx > 0 && i-dy > 0 ? matrixValPixelSUM[G(img,j-dx-1,i-dy-1)] : 0;
+      valPixel -= i - dy > 0 ? matrixValPixelSUM[G(img,x,i-dy-1)] : 0;
+      valPixel -= j - dx > 0 ? matrixValPixelSUM[G(img,j-dx-1,y)] : 0;
+      int h=i - dy > 0?i-dy:0,w=j - dx > 0?j-dx:0;
+      valPixel = (uint8)((double)valPixel / ((x-w+1) * (y-h+1)) + 0.5); 
+      ImageSetPixel(img,j,i,valPixel);
+    }
+  }
 //Algures dá erro nos indices do ImageGetPixel
 //Na imagem 2 passa do limite de PixMax permitido
-    ImageDestroy(&img2);
 }
 
-
 /*
-  int i,j,x,y;
-  uint8 valPixel;
-  Image img2=ImageCreate(ImageWidth(img),ImageHeight(img),ImageMaxval(img));
-      for (i = 0; i < ImageHeight(img2); i++){
-      for (j = 0; j < ImageWidth(img2) ; j++){
-      valPixel=ImageGetPixel(img,j,i);
-      valPixel+=j>0?ImageGetPixel(img2,j-1,i):0;
-      valPixel+=i>0?ImageGetPixel(img2,j,i-1):0;
-      valPixel=(uint8)(valPixel/((i+1)*(j+1))+0.5);
-      ImageSetPixel(img2,j,i,valPixel);     
-  }}
-  for (i = 0; i < ImageHeight(img2); i++){
-  for (j = 0; j < ImageWidth(img2) ; j++){
-    x=j+dx<ImageWidth(img)?j+dx:ImageWidth(img)-1;
-    y=i+dy<ImageHeight(img)?i+dy:ImageHeight(img)-1;
-    valPixel=(uint8)(ImageGetPixel(img2,x,y)*((x+1)*(y+1))+0.5);
-    valPixel-=(uint8)((i-dy>0?ImageGetPixel(img2,x,i-dy-1):0)*((x+1)*(i-dy))+0.5);
-    valPixel-=(uint8)((j-dx>0?ImageGetPixel(img2,j-dx-1,y):0)*((j-dx)*(y+1))+0.5);
-    valPixel+=(uint8)((j-dx>0&&i-dy>0?ImageGetPixel(img2,j-dx-1,i-dy-1):0)*((j-dx)*(i-dy))+0.5);
-    valPixel=(uint8)(valPixel/((dx+dy+1)*(dx+dy+1))+0.5); 
-    ImageSetPixel(img,j,i,valPixel);
- }}
+
+  int i,j,a,b,x,y;
+  int height = ImageHeight(img);
+  int width = ImageWidth(img);
+  Image copy = ImageCreate(width,height,ImageMaxval(img));
+  double valPixel;
+  ImagePaste(copy,0,0,img);
+  for (i = 0; i < height; i++){
+    for (j = 0; j < width ; j++){
+      valPixel = 0;
+      for (a = -dy; a <= dy; a++){
+        for (b = -dx; b <= dx; b++){
+          y= i+a < height ? i+a : height-1;
+          x= j+b < width ? j+b : width-1;
+          y= y < 0 ? 0 : y;
+          x= x < 0 ? 0 : x;
+          valPixel+=ImageGetPixel(copy,x,y);
+        }
+      }
+      valPixel=(uint8)(valPixel/((2*dx+1)*(2*dy+1))+0.5);
+      ImageSetPixel(img,j,i,valPixel);     
+    }
+  }
+    ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymor
+*/
+/*
+ int i,j;            // loop variables
+  int x,y;            // pixel position
+  double valPixel;    // pixel value (double to avoid overflow)
+  int height = ImageHeight(img);  
+  int width = ImageWidth(img);
+  Image copy = ImageCreate(width,height,ImageMaxval(img));  // Create a copy of the image
+  for (i = 0; i < height; i++){
+    for (j = 0; j < width ; j++){
+      valPixel = ImageGetPixel(img,j,i);
+      valPixel += j > 0 ? ImageGetPixel(copy,j-1,i) : 0;
+      valPixel += i > 0 ? ImageGetPixel(copy,j,i-1) : 0;
+      valPixel=(uint8)(valPixel / ((i+1) * (j+1)) + 0.5);
+      ImageSetPixel(copy,j,i,valPixel);     
+    }
+  }
+  for (i = 0; i < height; i++){
+    for (j = 0; j < width ; j++){
+      x = j+dx < width ? j+dx : width-1;
+      y = i+dy < height ? i+dy : height-1;
+      valPixel = (uint8)(ImageGetPixel(copy,x,y)*((x+1)*(y+1))+0.5);
+      valPixel -= (uint8)((i - dy > 0 ? ImageGetPixel(copy,x,i-dy-1) : 0) * ((x+1) * (i-dy)) + 0.5);
+      valPixel -= (uint8)((j - dx > 0 ? ImageGetPixel(copy,j-dx-1,y) : 0) * ((j-dx) * (y+1)) + 0.5);
+      valPixel += (uint8)((j - dx > 0 && i-dy > 0 ? ImageGetPixel(copy,j-dx-1,i-dy-1) : 0) * ((j-dx) * (i-dy)) + 0.5);
+      valPixel = (uint8)(valPixel / ((dx+dy+1) * (dx+dy+1)) + 0.5); 
+      ImageSetPixel(img,j,i,valPixel);
+    }
+  }
+//Algures dá erro nos indices do ImageGetPixel
+//Na imagem 2 passa do limite de PixMax permitido
+  ImageDestroy(&copy);  // Destroy the copy since it's not needed anymore
 */

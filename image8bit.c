@@ -179,7 +179,7 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
     imag->width = width;
     imag->height = height;
     imag->maxval = maxval;
-    imag->pixel = malloc(width * height * sizeof(uint8));
+    imag->pixel = (uint8*)malloc(width * height * sizeof(uint8));
     if (imag->pixel == NULL) {
         free(imag);
         return NULL;
@@ -626,6 +626,33 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 void ImageBlur(Image img, int dx, int dy) { ///
   assert(dx >= 0);    // dx must be non-negative
   assert(dy >= 0);    // dy must be non-negative
+  int i,j,a,b,x,y;
+  int height = ImageHeight(img);
+  int width = ImageWidth(img);
+  Image copy = ImageCreate(width,height,ImageMaxval(img));
+  double valPixel;
+  ImagePaste(copy,0,0,img);
+  for (i = 0; i < height; i++){
+    for (j = 0; j < width ; j++){
+      valPixel = 0;
+      for (a = -dy; a <= dy; a++){
+        for (b = -dx; b <= dx; b++){
+          valPixel+=ImageValidPos(copy,j+b,i+a)?ImageGetPixel(copy,j+b,i+a):0;
+        }
+      }
+      int h=i - dy > 0?i-dy:0,w=j - dx > 0?j-dx:0;
+      x = j+dx < width ? j+dx : width-1;
+      y = i+dy < height ? i+dy : height-1;
+      valPixel = (uint8)((double)valPixel / ((x-w+1) * (y-h+1)) + 0.5);
+      ImageSetPixel(img,j,i,valPixel);     
+    }
+  }
+    ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymor
+//Algures dá erro nos indices do ImageGetPixel
+//Na imagem 2 passa do limite de PixMax permitido
+}
+
+/*
   int i,j;            // loop variables
   int x,y;            // pixel position
   int valPixel;    // pixel value (double to avoid overflow)
@@ -655,35 +682,7 @@ void ImageBlur(Image img, int dx, int dy) { ///
       ImageSetPixel(img,j,i,valPixel);
     }
   }
-//Algures dá erro nos indices do ImageGetPixel
-//Na imagem 2 passa do limite de PixMax permitido
-}
 
-/*
-
-  int i,j,a,b,x,y;
-  int height = ImageHeight(img);
-  int width = ImageWidth(img);
-  Image copy = ImageCreate(width,height,ImageMaxval(img));
-  double valPixel;
-  ImagePaste(copy,0,0,img);
-  for (i = 0; i < height; i++){
-    for (j = 0; j < width ; j++){
-      valPixel = 0;
-      for (a = -dy; a <= dy; a++){
-        for (b = -dx; b <= dx; b++){
-          y= i+a < height ? i+a : height-1;
-          x= j+b < width ? j+b : width-1;
-          y= y < 0 ? 0 : y;
-          x= x < 0 ? 0 : x;
-          valPixel+=ImageGetPixel(copy,x,y);
-        }
-      }
-      valPixel=(uint8)(valPixel/((2*dx+1)*(2*dy+1))+0.5);
-      ImageSetPixel(img,j,i,valPixel);     
-    }
-  }
-    ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymor
 */
 /*
  int i,j;            // loop variables

@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "instrumentation.h"
-
 // The data structure
 //
 // An image is stored in a structure containing 3 fields:
@@ -130,7 +129,8 @@ char* ImageErrMsg() { ///
 // See example utilization in ImageLoad and ImageSave.
 //
 // (You are not required to use this in your code!)
-
+ 
+int compLocateSubImage;  // variable to keep track of the comparisons made when LocateSubImage is called.
 
 // Check a condition and set errCause to failmsg in case of failure.
 // This may be used to chain a sequence of operations and verify its success.
@@ -465,13 +465,6 @@ Image ImageRotate(Image img) { ///
   if (newImg==NULL){
     return NULL;
   }
-  /*
-  int count=ImageGetLength(img);
-  int indexNew;
-  for (int index = 0; index < count; index++){
-    
-  }
-  */
  for (int y = 0; y < ImageHeight(img); y++){
   for (int x = 0; x < ImageWidth(img); x++){
     ImageSetPixel(newImg,y,ImageWidth(img)-x-1,ImageGetPixel(img,x,y));
@@ -561,16 +554,18 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
  }}
 }
 
+
 /// Compare an image to a subimage of a larger image.
 /// Returns 1 (true) if img2 matches subimage of img1 at pos (x, y).
 /// Returns 0, otherwise.
 int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
-  assert (img1 != NULL);
+  assert (img1 != NULL);  // the images can't be NULL
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
     for (int i = 0; i < img2->height ; i++){
       for (int j = 0; j < img2->width ; j++){
+        compLocateSubImage++; // increment the variable after each comparison
         if (ImageGetPixel(img2,j,i) != ImageGetPixel(img1,j+x,i+y))
         {
           return 0;
@@ -587,75 +582,36 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
 int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
+  compLocateSubImage=0; // Global variable set to 0 (before calling ImageMatchSubImage, where the comparisons will be made)
   for (int i = 0; i < img2->height ; i++){
     for (int j = 0; j < img2->width ; j++){
       if (ImageValidRect(img1, j, i, img2->width, img2->height)&&ImageMatchSubImage(img1, j, i, img2)==1)
       {
         *px=j;
         *py=i;
+        printf("Comparações: %d\n",compLocateSubImage);
         return 1;
       }
-      
- }}
- return 0;
-}
-/*
-int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
-  assert (img1 != NULL);
-  assert (img2 != NULL);
-  for (int i = 0; i < img2->height ; i++){
-    for (int j = 0; j < img2->width ; j++){
-      if (ImageValidRect(img1, j, i, img2->width, img2->height)&&ImageMatchSubImage(img1, j, i, img2)==1)
-      {
-        *px=j;
-        *py=i;
-        return 1;
-      }
-      
- }}
- return 0;
-}
-*/
 
+ }}
+ return 0;
+}
 /// Filtering
 
 /// Blur an image by a applying a (2dx+1)x(2dy+1) mean filter.
 /// Each pixel is substituted by the mean of the pixels in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur(Image img, int dx, int dy) { ///
+
+void ImageBlur(Image img, int dx, int dy) {
   assert(dx >= 0);    // dx must be non-negative
   assert(dy >= 0);    // dy must be non-negative
-  int i,j,a,b,x,y;
-  int height = ImageHeight(img);
-  int width = ImageWidth(img);
-  Image copy = ImageCreate(width,height,ImageMaxval(img));
-  double valPixel;
-  ImagePaste(copy,0,0,img);
-  for (i = 0; i < height; i++){
-    for (j = 0; j < width ; j++){
-      valPixel = 0;
-      for (a = -dy; a <= dy; a++){
-        for (b = -dx; b <= dx; b++){
-          valPixel+=ImageValidPos(copy,j+b,i+a)?ImageGetPixel(copy,j+b,i+a):0;
-        }
-      }
-      int h=i - dy > 0?i-dy:0,w=j - dx > 0?j-dx:0;
-      x = j+dx < width ? j+dx : width-1;
-      y = i+dy < height ? i+dy : height-1;
-      valPixel = (uint8)((double)valPixel / ((x-w+1) * (y-h+1)) + 0.5);
-      ImageSetPixel(img,j,i,valPixel);     
-    }
-  }
-    ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymor
-//Algures dá erro nos indices do ImageGetPixel
-//Na imagem 2 passa do limite de PixMax permitido
-}
-
-/*
+  double start_time,finish_time,exec_time;
+  start_time = cpu_time();
   int i,j;            // loop variables
   int x,y;            // pixel position
   int valPixel;    // pixel value (double to avoid overflow)
+  int comparacoes=0;
   int height = ImageHeight(img);  
   int width = ImageWidth(img);
   int matrixValPixelSUM[height*width];
@@ -665,7 +621,7 @@ void ImageBlur(Image img, int dx, int dy) { ///
       valPixel += j > 0 ? matrixValPixelSUM[G(img,j-1,i)] : 0;
       valPixel += i > 0 ? matrixValPixelSUM[G(img,j,i-1)] : 0;
       valPixel -= i > 0 && j > 0 ? matrixValPixelSUM[G(img,j-1,i-1)] : 0;
-      
+      comparacoes+=3;
       matrixValPixelSUM[G(img,j,i)]=valPixel;     
     }
   }
@@ -678,41 +634,48 @@ void ImageBlur(Image img, int dx, int dy) { ///
       valPixel -= i - dy > 0 ? matrixValPixelSUM[G(img,x,i-dy-1)] : 0;
       valPixel -= j - dx > 0 ? matrixValPixelSUM[G(img,j-dx-1,y)] : 0;
       int h=i - dy > 0?i-dy:0,w=j - dx > 0?j-dx:0;
+      comparacoes+=7;
       valPixel = (uint8)((double)valPixel / ((x-w+1) * (y-h+1)) + 0.5); 
       ImageSetPixel(img,j,i,valPixel);
     }
   }
 
-*/
-/*
- int i,j;            // loop variables
-  int x,y;            // pixel position
-  double valPixel;    // pixel value (double to avoid overflow)
-  int height = ImageHeight(img);  
+    finish_time = cpu_time();
+
+    exec_time = finish_time - start_time;
+      printf("Tempo: %f\n",exec_time);
+
+}
+
+/* LEAST EFFICIENT BLUR 
+void ImageBlur(Image img, int dx, int dy) {
+  int i,j,a,b,heightMax,widthMax,heightMin,widthMin,Area,comparacoes=0;
+  int height = ImageHeight(img);
   int width = ImageWidth(img);
-  Image copy = ImageCreate(width,height,ImageMaxval(img));  // Create a copy of the image
+  Image copy = ImageCreate(width,height,ImageMaxval(img));
+  double valPixel;
+  ImagePaste(copy,0,0,img);
   for (i = 0; i < height; i++){
     for (j = 0; j < width ; j++){
-      valPixel = ImageGetPixel(img,j,i);
-      valPixel += j > 0 ? ImageGetPixel(copy,j-1,i) : 0;
-      valPixel += i > 0 ? ImageGetPixel(copy,j,i-1) : 0;
-      valPixel=(uint8)(valPixel / ((i+1) * (j+1)) + 0.5);
-      ImageSetPixel(copy,j,i,valPixel);     
+      valPixel = 0;
+      for (a = -dy; a <= dy; a++){
+        for (b = -dx; b <= dx; b++){
+          valPixel+=ImageValidPos(copy,j+b,i+a)?ImageGetPixel(copy,j+b,i+a):0;
+          comparacoes++;
+        }
+      }
+      heightMin=i - dy > 0?i-dy:0,
+      widthMin =j - dx > 0?j-dx:0;
+      heightMax = i+dy < height ? i+dy : height-1;
+      widthMax = j+dx < width ? j+dx : width-1;
+      comparacoes+=4;
+      Area=(widthMax - widthMin +1) * (heightMax - heightMin +1);
+      valPixel = (uint8)((double)valPixel / (Area) + 0.5);
+      ImageSetPixel(img,j,i,valPixel);     
     }
   }
-  for (i = 0; i < height; i++){
-    for (j = 0; j < width ; j++){
-      x = j+dx < width ? j+dx : width-1;
-      y = i+dy < height ? i+dy : height-1;
-      valPixel = (uint8)(ImageGetPixel(copy,x,y)*((x+1)*(y+1))+0.5);
-      valPixel -= (uint8)((i - dy > 0 ? ImageGetPixel(copy,x,i-dy-1) : 0) * ((x+1) * (i-dy)) + 0.5);
-      valPixel -= (uint8)((j - dx > 0 ? ImageGetPixel(copy,j-dx-1,y) : 0) * ((j-dx) * (y+1)) + 0.5);
-      valPixel += (uint8)((j - dx > 0 && i-dy > 0 ? ImageGetPixel(copy,j-dx-1,i-dy-1) : 0) * ((j-dx) * (i-dy)) + 0.5);
-      valPixel = (uint8)(valPixel / ((dx+dy+1) * (dx+dy+1)) + 0.5); 
-      ImageSetPixel(img,j,i,valPixel);
-    }
-  }
+    printf("Comparações: %d\n",comparacoes);
+    ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymor
+}*/
 //Algures dá erro nos indices do ImageGetPixel
 //Na imagem 2 passa do limite de PixMax permitido
-  ImageDestroy(&copy);  // Destroy the copy since it's not needed anymore
-*/

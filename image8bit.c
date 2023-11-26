@@ -15,7 +15,7 @@
 // 
 // 
 // 
-// Date:
+// Date: 26/11/2023
 //
 
 #include "image8bit.h"
@@ -91,7 +91,6 @@ char* ImageErrMsg() { ///
   return errCause;
 }
 
-
 // Defensive programming aids
 //
 // Proper defensive programming in C, which lacks an exception mechanism,
@@ -153,6 +152,7 @@ void ImageInit(void) { ///
 
 // Macros to simplify accessing instrumentation counters:
 #define PIXMEM InstrCount[0]
+#define INSTR1 InstrCount[1]
 // Macro intended for rounding a double to the nearest integer (useful for some operations)
 #define ROUND 0.5
 // Add more macros here...
@@ -728,21 +728,19 @@ void ImageBlur(Image img, int dx, int dy) {
   int i, j;             // Loop variables
   int x, y;             // Pixel position
   int valPixel;         // Pixel value
-  int height = ImageHeight(img);
-  int width = ImageWidth(img);
+  int height = ImageHeight(img);  // Image height
+  int width = ImageWidth(img);    // Image width
   int *matrixValPixelSUM= (int*)malloc(sizeof(int)*height * width); // Create an array to store the cumulative sums of the pixel values
-  int area; //area de pixels do blur
+  int area; // Area of the blur
 
-
-  // To 
-  // First pass: Compute the cumulative sum over rows
+  // First pass: Compute the cumulative sums
   for (i = 0; i < height; i++) {
     for (j = 0; j < width; j++) {
       valPixel = ImageGetPixel(img, j, i);
-      //Adiciona se, se existirem, a soma comutiva armazenada na coluna anterior (j - 1, i) e na linha anterior (j, i - 1)) 
-      valPixel += j > 0 ? matrixValPixelSUM[G(img, j - 1, i)] : 0;              // Cumulative sum over the previous row
-      valPixel += i > 0 ? matrixValPixelSUM[G(img, j, i - 1)] : 0;              // Cumulative sum over the previous column
-      //se ambos forem somados existia uma área de piskies duplicada então tempos de remover o valor acumolado em (j - 1, i - 1)
+      //Add the cumsum stored in the previous column (j -1, i) and in the previous row (j, i - 1), if they exist 
+      valPixel += j > 0 ? matrixValPixelSUM[G(img, j - 1, i)] : 0;    // Cumulative sum over the previous row
+      valPixel += i > 0 ? matrixValPixelSUM[G(img, j, i - 1)] : 0;    // Cumulative sum over the previous column
+      //If both values where added together, there was an area of pixels added twice, so we must subtract it once
       valPixel -= i > 0 && j > 0 ? matrixValPixelSUM[G(img, j - 1, i - 1)] : 0; // Remove the overlap to avoid double counting
       matrixValPixelSUM[G(img, j, i)] = valPixel; // Store the cumulative sum at the current position
     }
@@ -758,7 +756,7 @@ void ImageBlur(Image img, int dx, int dy) {
       valPixel -= i - dy > 0 ? matrixValPixelSUM[G(img, x, i - dy - 1)] : 0;  // Remove the overlap from the previous row     
       valPixel -= j - dx > 0 ? matrixValPixelSUM[G(img, j - dx - 1, y)] : 0;  // Remove the overlap from the previous column 
       int h = i - dy > 0 ? i - dy : 0, w = j - dx > 0 ? j - dx : 0;           // Compute the height and width of the region 
-      area = (x - w + 1) * (y - h + 1); //calculo da area de pixels do blur
+      area = (x - w + 1) * (y - h + 1); // Compute the area of pixels in the region
       valPixel = (uint8)((double)valPixel / (area) + ROUND); // Compute the weighted average and round it
       ImageSetPixel(img, j, i, valPixel); // Set the pixel value in the output image
     }
@@ -770,30 +768,47 @@ void ImageBlur(Image img, int dx, int dy) {
 
 /* LEAST EFFICIENT BLUR EXECUTION 
 void ImageBlur(Image img, int dx, int dy) {
-  int i,j,a,b,heightMax,widthMax,heightMin,widthMin,Area;
+  int i, j, a, b, heightMax, widthMax, heightMin, widthMin, Area;
   int height = ImageHeight(img);
   int width = ImageWidth(img);
-  Image copy = ImageCreate(width,height,ImageMaxval(img));
-  double valPixel;
-  ImagePaste(copy,0,0,img);
-  for (i = 0; i < height; i++){
-    for (j = 0; j < width ; j++){
-      valPixel = 0;
-      for (a = -dy; a <= dy; a++){
-        for (b = -dx; b <= dx; b++){
-          valPixel+=ImageValidPos(copy,j+b,i+a)?ImageGetPixel(copy,j+b,i+a):0;
+
+  // Create a copy of the original image
+  Image copy = ImageCreate(width, height, ImageMaxval(img));
+
+  // Paste the original image onto the copy
+  ImagePaste(copy, 0, 0, img);
+
+  // Iterate through each pixel in the original image
+  for (i = 0; i < height; i++) {
+    for (j = 0; j < width; j++) {
+      double valPixel = 0;
+
+      // Iterate over the pixel area considered for the blur, for each pixel in the original image
+      for (a = -dy; a <= dy; a++) {
+        for (b = -dx; b <= dx; b++) {
+          // Accumulate pixel values, considering boundary conditions and store them in valPixel
+          valPixel += ImageValidPos(copy, j + b, i + a) ? ImageGetPixel(copy, j + b, i + a) : 0;
         }
       }
-      heightMin=i - dy > 0?i-dy:0,
-      widthMin =j - dx > 0?j-dx:0;
-      heightMax = i+dy < height ? i+dy : height-1;
-      widthMax = j+dx < width ? j+dx : width-1;
-      Area=(widthMax - widthMin +1) * (heightMax - heightMin +1);
-      valPixel = (uint8)((double)valPixel / (Area) + ROUND);
-      ImageSetPixel(img,j,i,valPixel);     
+
+      // Determine the valid region to compute the average
+      heightMin = i - dy > 0 ? i - dy : 0;
+      widthMin = j - dx > 0 ? j - dx : 0;
+      heightMax = i + dy < height ? i + dy : height - 1;
+      widthMax = j + dx < width ? j + dx : width - 1;
+
+      // Calculate the area considered for the blur
+      Area = (widthMax - widthMin + 1) * (heightMax - heightMin + 1);
+
+      // Calculate the average value and set it to the corresponding pixel in the original image
+      valPixel = (uint8)((double)valPixel / Area + ROUND);
+      ImageSetPixel(img, j, i, valPixel);
     }
   }
-    ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymore
-}*/
+
+  // Destroy the copy since it's no longer needed
+  ImageDestroy(&copy);
+}
+*/
 //Algures dá erro nos indices do ImageGetPixel
 //Na imagem 2 passa do limite de PixMax permitido

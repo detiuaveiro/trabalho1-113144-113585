@@ -702,7 +702,6 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) {
         // if there's a match:
         *px = j;  // Set the matching position in the variable pointed to by px.
         *py = i;  // Set the matching position in the variable pointed to by py.
-        printf("Comparacoes: %d\n", compLocateSubImage);
         return 1;  // Return 1 (true) to indicate a match.
       }
     }
@@ -721,20 +720,19 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) {
 /// This implementation is a two-pass algorithm that uses computes cumulative sums to apply the blur. 
 /// We consider this to be the most efficient implementation we could come up with. 
 void ImageBlur(Image img, int dx, int dy) {
-  assert(dx >= 0);    // Ensure dx is non-negative
-  assert(dy >= 0);    // Ensure dy is non-negative
+  assert(dx >= 0);      // Assert dx is non-negative
+  assert(dy >= 0);      // Assert dy is non-negative
 
-  double start_time, finish_time, exec_time;
-  start_time = cpu_time();  // Record the start time for performance measurement
-
-  int i, j;            // Loop variables
-  int x, y;            // Pixel position
-  int valPixel;        // Pixel value (double to avoid overflow)
-  int comparacoes = 0; // Variable to count the number of pixel comparisons
+  int i, j;             // Loop variables
+  int x, y;             // Pixel position
+  int valPixel;         // Pixel value
   int height = ImageHeight(img);
   int width = ImageWidth(img);
-  int matrixValPixelSUM[height * width];
+  int matrixValPixelSUM[height * width]; // Create an array to store the cumulative sums of the pixel values
+  int area; 
 
+
+  // To 
   // First pass: Compute the cumulative sum over rows
   for (i = 0; i < height; i++) {
     for (j = 0; j < width; j++) {
@@ -742,7 +740,6 @@ void ImageBlur(Image img, int dx, int dy) {
       valPixel += j > 0 ? matrixValPixelSUM[G(img, j - 1, i)] : 0;              // Cumulative sum over the previous row
       valPixel += i > 0 ? matrixValPixelSUM[G(img, j, i - 1)] : 0;              // Cumulative sum over the previous column
       valPixel -= i > 0 && j > 0 ? matrixValPixelSUM[G(img, j - 1, i - 1)] : 0; // Remove the overlap to avoid double counting
-      comparacoes += 3;
       matrixValPixelSUM[G(img, j, i)] = valPixel; // Store the cumulative sum at the current position
     }
   }
@@ -757,15 +754,11 @@ void ImageBlur(Image img, int dx, int dy) {
       valPixel -= i - dy > 0 ? matrixValPixelSUM[G(img, x, i - dy - 1)] : 0;  // Remove the overlap from the previous row
       valPixel -= j - dx > 0 ? matrixValPixelSUM[G(img, j - dx - 1, y)] : 0;  // Remove the overlap from the previous column
       int h = i - dy > 0 ? i - dy : 0, w = j - dx > 0 ? j - dx : 0;           // Compute the height and width of the region
-      comparacoes += 7;                                                       // Increment the number of pixel comparisons
-      valPixel = (uint8)((double)valPixel / ((x - w + 1) * (y - h + 1)) + ROUND); // Compute the weighted average and round it
+      area = (x - w + 1) * (y - h + 1);
+      valPixel = (uint8)((double)valPixel / () + ROUND); // Compute the weighted average and round it
       ImageSetPixel(img, j, i, valPixel); // Set the pixel value in the output image
     }
   }
-
-  finish_time = cpu_time();
-  exec_time = finish_time - start_time;
-  printf("Tempo: %f\n", exec_time);  // Print the execution time
 }
 
 

@@ -702,11 +702,13 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) {
         // if there's a match:
         *px = j;  // Set the matching position in the variable pointed to by px.
         *py = i;  // Set the matching position in the variable pointed to by py.
+        //printf("%-10d\n",compLocateSubImage);
+
         return 1;  // Return 1 (true) to indicate a match.
       }
     }
   }
-
+  //printf("%-10d\n",compLocateSubImage);
   // If no match is found, leave (*px, *py) untouched and return 0 (false).
   return 0;
 }
@@ -728,7 +730,7 @@ void ImageBlur(Image img, int dx, int dy) {
   int valPixel;         // Pixel value
   int height = ImageHeight(img);
   int width = ImageWidth(img);
-  int matrixValPixelSUM[height * width]; // Create an array to store the cumulative sums of the pixel values
+  int *matrixValPixelSUM= (int*)malloc(sizeof(int)*height * width); // Create an array to store the cumulative sums of the pixel values
   int area; //area de pixels do blur
 
 
@@ -761,13 +763,14 @@ void ImageBlur(Image img, int dx, int dy) {
       ImageSetPixel(img, j, i, valPixel); // Set the pixel value in the output image
     }
   }
+  free(matrixValPixelSUM);
 }
 
 
 
 /* LEAST EFFICIENT BLUR EXECUTION 
 void ImageBlur(Image img, int dx, int dy) {
-  int i,j,a,b,heightMax,widthMax,heightMin,widthMin,Area,comparacoes=0;
+  int i,j,a,b,heightMax,widthMax,heightMin,widthMin,Area;
   int height = ImageHeight(img);
   int width = ImageWidth(img);
   Image copy = ImageCreate(width,height,ImageMaxval(img));
@@ -779,20 +782,17 @@ void ImageBlur(Image img, int dx, int dy) {
       for (a = -dy; a <= dy; a++){
         for (b = -dx; b <= dx; b++){
           valPixel+=ImageValidPos(copy,j+b,i+a)?ImageGetPixel(copy,j+b,i+a):0;
-          comparacoes++;
         }
       }
       heightMin=i - dy > 0?i-dy:0,
       widthMin =j - dx > 0?j-dx:0;
       heightMax = i+dy < height ? i+dy : height-1;
       widthMax = j+dx < width ? j+dx : width-1;
-      comparacoes+=4;
       Area=(widthMax - widthMin +1) * (heightMax - heightMin +1);
       valPixel = (uint8)((double)valPixel / (Area) + ROUND);
       ImageSetPixel(img,j,i,valPixel);     
     }
   }
-    printf("Comparações: %d\n",comparacoes);
     ImageDestroy(&copy);  // Destroy the copy sense it's not needed anymore
 }*/
 //Algures dá erro nos indices do ImageGetPixel

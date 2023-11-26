@@ -729,7 +729,7 @@ void ImageBlur(Image img, int dx, int dy) {
   int height = ImageHeight(img);
   int width = ImageWidth(img);
   int matrixValPixelSUM[height * width]; // Create an array to store the cumulative sums of the pixel values
-  int area; 
+  int area; //area de pixels do blur
 
 
   // To 
@@ -737,8 +737,10 @@ void ImageBlur(Image img, int dx, int dy) {
   for (i = 0; i < height; i++) {
     for (j = 0; j < width; j++) {
       valPixel = ImageGetPixel(img, j, i);
+      //Adiciona se, se existirem, a soma comutiva armazenada na coluna anterior (j - 1, i) e na linha anterior (j, i - 1)) 
       valPixel += j > 0 ? matrixValPixelSUM[G(img, j - 1, i)] : 0;              // Cumulative sum over the previous row
       valPixel += i > 0 ? matrixValPixelSUM[G(img, j, i - 1)] : 0;              // Cumulative sum over the previous column
+      //se ambos forem somados existia uma área de piskies duplicada então tempos de remover o valor acumolado em (j - 1, i - 1)
       valPixel -= i > 0 && j > 0 ? matrixValPixelSUM[G(img, j - 1, i - 1)] : 0; // Remove the overlap to avoid double counting
       matrixValPixelSUM[G(img, j, i)] = valPixel; // Store the cumulative sum at the current position
     }
@@ -751,11 +753,11 @@ void ImageBlur(Image img, int dx, int dy) {
       y = i + dy < height ? i + dy : height - 1;  // Compute the y-coordinate for the weighted average region
       valPixel = matrixValPixelSUM[G(img, x, y)]; // Get the cumulative sum at the target position
       valPixel += j - dx > 0 && i - dy > 0 ? matrixValPixelSUM[G(img, j - dx - 1, i - dy - 1)] : 0; // Remove the overlap from the previous region
-      valPixel -= i - dy > 0 ? matrixValPixelSUM[G(img, x, i - dy - 1)] : 0;  // Remove the overlap from the previous row
-      valPixel -= j - dx > 0 ? matrixValPixelSUM[G(img, j - dx - 1, y)] : 0;  // Remove the overlap from the previous column
-      int h = i - dy > 0 ? i - dy : 0, w = j - dx > 0 ? j - dx : 0;           // Compute the height and width of the region
-      area = (x - w + 1) * (y - h + 1);
-      valPixel = (uint8)((double)valPixel / () + ROUND); // Compute the weighted average and round it
+      valPixel -= i - dy > 0 ? matrixValPixelSUM[G(img, x, i - dy - 1)] : 0;  // Remove the overlap from the previous row     
+      valPixel -= j - dx > 0 ? matrixValPixelSUM[G(img, j - dx - 1, y)] : 0;  // Remove the overlap from the previous column 
+      int h = i - dy > 0 ? i - dy : 0, w = j - dx > 0 ? j - dx : 0;           // Compute the height and width of the region 
+      area = (x - w + 1) * (y - h + 1); //calculo da area de pixels do blur
+      valPixel = (uint8)((double)valPixel / (area) + ROUND); // Compute the weighted average and round it
       ImageSetPixel(img, j, i, valPixel); // Set the pixel value in the output image
     }
   }
